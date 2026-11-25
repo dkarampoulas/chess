@@ -119,7 +119,7 @@
         <h3 style="color: var(--accent); margin-bottom: 12px;">Part 1: Duration Distribution Modeling</h3>
         <ul style="padding-left: 20px; color: #c9d1d9; font-size: 0.95rem; display: flex; flex-direction: column; gap: 8px;">
           <li><b>Dataset:</b> Strictly 10+0 rapid games (600s initial clock, 0 increment), max bound = 20.0 minutes.</li>
-          <li><b>Base Model:</b> Normal Distribution \(\mathcal{N}(\mu = 13.00	ext{ min}, \sigma = 5.34	ext{ min})\).</li>
+          <li><b>Base Model:</b> Normal Distribution \(\mathcal{N}(\mu = 13.00\text{ min}, \sigma = 5.34\text{ min})\).</li>
           <li><b>Model Selection:</b> Rigorously evaluated against Gamma and Log-Normal via Log-Likelihood, AIC, BIC, and Kolmogorov-Smirnov test statistics.</li>
           <li><b>Conditional Win Dynamics:</b> Proved mathematically and empirically that White holds an early tactical initiative spike (\(>55\%\) win rate at \(t < 6\) min), while Draw rates surge 3x as games extend into deep King-and-Pawn endgames (\(t > 15\) min).</li>
         </ul>
@@ -128,8 +128,8 @@
       <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 20px;">
         <h3 style="color: var(--blood); margin-bottom: 12px;">Part 2: Spatial Piece Deaths & Brawl Decisiveness</h3>
         <ul style="padding-left: 20px; color: #c9d1d9; font-size: 0.95rem; display: flex; flex-direction: column; gap: 8px;">
-          <li><b>Spatial Probability:</b> Calculated empirical probability \(p_{	ext{emp}}(i) = rac{D_i}{D_{	ext{total}}}\) across all 64 squares.</li>
-          <li><b>#1 Deadliest Square:</b> <b>D4</b> with 3,332 deaths (\(p_{	ext{emp}} = 7.54\%\)), followed by D5 (\(7.32\%\)), E5 (\(5.30\%\)), and E4 (\(4.67\%\)). The four central squares capture 24.8% of all fallen pieces on the entire board (4.8x uniform expectation).</li>
+          <li><b>Spatial Probability:</b> Calculated empirical probability \(p_{\text{emp}}(i) = \frac{D_i}{D_{\text{total}}}\) across all 64 squares.</li>
+          <li><b>#1 Deadliest Square:</b> <b>D4</b> with 3,332 deaths (\(p_{\text{emp}} = 7.54\%\)), followed by D5 (\(7.32\%\)), E5 (\(5.30\%\)), and E4 (\(4.67\%\)). The four central squares capture 24.8% of all fallen pieces on the entire board (4.8x uniform expectation).</li>
           <li><b>Victim Demographics on D4:</b> 67.4% Pawns, 19.2% Knights, 5.9% Bishops, 4.1% Queens, 3.4% Rooks.</li>
           <li><b>Openings Engine:</b> Open Sicilian Defense (<code>e4 c5 Nf3 d6 d4 cxd4</code>) and French Defense Advance breaks are the predominant catalysts of death on d4.</li>
           <li><b>Brawl Correlation:</b> When Black emerges victorious from the multi-capture exchange brawl on d4, Black wins the entire match 54.7% of the time.</li>

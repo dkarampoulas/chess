@@ -329,8 +329,8 @@ def generate_part1_html(part1_data, output_path):
     <div class="proof-section">
       <h2>Mathematical Rigor & Goodness-of-Fit Proof</h2>
       <p>
-        In rapid 10-minute chess (time control <code>600+0</code>), each player begins with a clock capital of \(T_0 = 600\text{ s}\).
-        The theoretical maximum duration of any match is hard-bounded by \(2T_0 = 1200\text{ s} = 20.0\text{ min}\).
+        In rapid 10-minute chess (time control <code>600+0</code>), each player begins with a clock capital of \(T_0 = 600\\text{ s}\).
+        The theoretical maximum duration of any match is hard-bounded by \(2T_0 = 1200\\text{ s} = 20.0\\text{ min}\).
         We evaluate the base model \(\mathcal{N}(\mu, \sigma^2)\) against asymmetric continuous distributions with positive support \(\mathbb{R}^+\).
       </p>
 
@@ -357,7 +357,7 @@ def generate_part1_html(part1_data, output_path):
             <td>__NORM_PVAL__</td>
           </tr>
           <tr>
-            <td>Log-Normal \(\text{LogN}(\mu_{\ln}, \sigma_{\ln}^2)\)</td>
+            <td>Log-Normal \(\\text{LogN}(\mu_{\ln}, \sigma_{\ln}^2)\)</td>
             <td>__LN_PARAMS__</td>
             <td>__LN_LL__</td>
             <td>__LN_AIC__</td>
@@ -378,15 +378,15 @@ def generate_part1_html(part1_data, output_path):
       </table>
 
       <div class="formula-callout">
-        <h3>Analytical Insight on Match Won Probabilities \(P(\text{Outcome} \mid T = t)\):</h3>
+        <h3>Analytical Insight on Match Won Probabilities \(P(\\text{Outcome} \mid T = t)\):</h3>
         <p style="margin-top: 6px;">
-          1. <b>Early Phase (\(t < 6\text{ min}\)):</b> Matches terminating early are driven by opening blunders and tactical traps (e.g. Scholar's mate variants, trapped queens). White captures the first-move advantage initiative, achieving win rates over <b>55%</b>.
+          1. <b>Early Phase (\(t < 6\\text{ min}\)):</b> Matches terminating early are driven by opening blunders and tactical traps (e.g. Scholar's mate variants, trapped queens). White captures the first-move advantage initiative, achieving win rates over <b>55%</b>.
         </p>
         <p style="margin-top: 6px;">
-          2. <b>Middlegame Phase (\(6 \le t \le 14\text{ min}\)):</b> Strategic equilibrium. Black's defensive resources equalize, and outcomes converge toward standard master distributions (\(\approx 48\%\) White, \(45\%\) Black).
+          2. <b>Middlegame Phase (\(6 \le t \le 14\\text{ min}\)):</b> Strategic equilibrium. Black's defensive resources equalize, and outcomes converge toward standard master distributions (\(\approx 48\%\) White, \(45\%\) Black).
         </p>
         <p style="margin-top: 6px;">
-          3. <b>Endgame & Time Scramble (\(t > 15\text{ min}\)):</b> Clock attrition. As pieces leave the board into simplified King-and-Pawn endgames, the Draw probability \(P(\text{Draw} \mid t)\) rises steeply by <b>2.5× to 3×</b> compared to middlegames.
+          3. <b>Endgame & Time Scramble (\(t > 15\\text{ min}\)):</b> Clock attrition. As pieces leave the board into simplified King-and-Pawn endgames, the Draw probability \(P(\\text{Draw} \mid t)\) rises steeply by <b>2.5× to 3×</b> compared to middlegames.
         </p>
       </div>
     </div>
@@ -535,7 +535,7 @@ def generate_part1_html(part1_data, output_path):
 </html>
 """
 
-    norm_params = f"\\mu = {fits['normal']['params']['mu']:.3f}\\text{{ min}}, \\sigma = {fits['normal']['params']['sigma']:.3f}"
+    norm_params = f"\\mu = {fits['normal']['params']['mu']:.3f}\\\text{{ min}}, \\sigma = {fits['normal']['params']['sigma']:.3f}"
     ln_params = f"\\mu_{{\\ln}} = {fits['lognormal']['params']['mu_log']:.3f}, \\sigma_{{\\ln}} = {fits['lognormal']['params']['sigma_log']:.3f}"
     gamma_params = f"\\alpha = {fits['gamma']['params']['alpha (shape)']:.3f}, \\beta = {fits['gamma']['params']['beta (rate)']:.3f}"
 
@@ -865,7 +865,7 @@ def generate_part2_html(part2_data, output_path):
   <div class="container">
     <div class="header">
       <h1>Chessboard Carnage Heatmap: Spatial Piece Deaths</h1>
-      <p>Empirical Probability Distribution \(p_{\text{emp}}(i) = \frac{D_i}{D_{\text{total}}}\), Piece Sacrifices, & Brawl Decisiveness</p>
+      <p>Empirical Probability Distribution \(p_{\\text{emp}}(i) = \\frac{D_i}{D_{\\text{total}}}\), Piece Sacrifices, & Brawl Decisiveness</p>
       <div style="margin-top: 10px;">
         <span class="badge">Analyzed __TOTAL_GAMES__ Matches</span>
         <span class="badge">Total Pieces Fallen: __TOTAL_DEATHS__</span>
@@ -1231,7 +1231,7 @@ def generate_master_portfolio_html(part1_data, part2_data, output_path):
         <h3 style="color: var(--accent); margin-bottom: 12px;">Part 1: Duration Distribution Modeling</h3>
         <ul style="padding-left: 20px; color: #c9d1d9; font-size: 0.95rem; display: flex; flex-direction: column; gap: 8px;">
           <li><b>Dataset:</b> Strictly 10+0 rapid games (600s initial clock, 0 increment), max bound = 20.0 minutes.</li>
-          <li><b>Base Model:</b> Normal Distribution \(\mathcal{N}(\mu = __MEAN_MIN__\text{ min}, \sigma = __STD_MIN__\text{ min})\).</li>
+          <li><b>Base Model:</b> Normal Distribution \(\mathcal{N}(\mu = __MEAN_MIN__\\text{ min}, \sigma = __STD_MIN__\\text{ min})\).</li>
           <li><b>Model Selection:</b> Rigorously evaluated against Gamma and Log-Normal via Log-Likelihood, AIC, BIC, and Kolmogorov-Smirnov test statistics.</li>
           <li><b>Conditional Win Dynamics:</b> Proved mathematically and empirically that White holds an early tactical initiative spike (\(>55\%\) win rate at \(t < 6\) min), while Draw rates surge 3x as games extend into deep King-and-Pawn endgames (\(t > 15\) min).</li>
         </ul>
@@ -1240,8 +1240,8 @@ def generate_master_portfolio_html(part1_data, part2_data, output_path):
       <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 20px;">
         <h3 style="color: var(--blood); margin-bottom: 12px;">Part 2: Spatial Piece Deaths & Brawl Decisiveness</h3>
         <ul style="padding-left: 20px; color: #c9d1d9; font-size: 0.95rem; display: flex; flex-direction: column; gap: 8px;">
-          <li><b>Spatial Probability:</b> Calculated empirical probability \(p_{\text{emp}}(i) = \frac{D_i}{D_{\text{total}}}\) across all 64 squares.</li>
-          <li><b>#1 Deadliest Square:</b> <b>D4</b> with 3,332 deaths (\(p_{\text{emp}} = 7.54\%\)), followed by D5 (\(7.32\%\)), E5 (\(5.30\%\)), and E4 (\(4.67\%\)). The four central squares capture 24.8% of all fallen pieces on the entire board (4.8x uniform expectation).</li>
+          <li><b>Spatial Probability:</b> Calculated empirical probability \(p_{\\text{emp}}(i) = \\frac{D_i}{D_{\\text{total}}}\) across all 64 squares.</li>
+          <li><b>#1 Deadliest Square:</b> <b>D4</b> with 3,332 deaths (\(p_{\\text{emp}} = 7.54\%\)), followed by D5 (\(7.32\%\)), E5 (\(5.30\%\)), and E4 (\(4.67\%\)). The four central squares capture 24.8% of all fallen pieces on the entire board (4.8x uniform expectation).</li>
           <li><b>Victim Demographics on D4:</b> 67.4% Pawns, 19.2% Knights, 5.9% Bishops, 4.1% Queens, 3.4% Rooks.</li>
           <li><b>Openings Engine:</b> Open Sicilian Defense (<code>e4 c5 Nf3 d6 d4 cxd4</code>) and French Defense Advance breaks are the predominant catalysts of death on d4.</li>
           <li><b>Brawl Correlation:</b> When Black emerges victorious from the multi-capture exchange brawl on d4, Black wins the entire match 54.7% of the time.</li>

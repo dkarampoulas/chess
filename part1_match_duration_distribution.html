@@ -266,8 +266,8 @@
     <div class="proof-section">
       <h2>Mathematical Rigor & Goodness-of-Fit Proof</h2>
       <p>
-        In rapid 10-minute chess (time control <code>600+0</code>), each player begins with a clock capital of \(T_0 = 600	ext{ s}\).
-        The theoretical maximum duration of any match is hard-bounded by \(2T_0 = 1200	ext{ s} = 20.0	ext{ min}\).
+        In rapid 10-minute chess (time control <code>600+0</code>), each player begins with a clock capital of \(T_0 = 600\text{ s}\).
+        The theoretical maximum duration of any match is hard-bounded by \(2T_0 = 1200\text{ s} = 20.0\text{ min}\).
         We evaluate the base model \(\mathcal{N}(\mu, \sigma^2)\) against asymmetric continuous distributions with positive support \(\mathbb{R}^+\).
       </p>
 
@@ -286,7 +286,7 @@
         <tbody>
           <tr style="background: rgba(88,166,255,0.08); font-weight: 600;">
             <td>Normal \(\mathcal{N}(\mu, \sigma^2)\) (Base Model)</td>
-            <td>\(\mu = 12.996\text{ min}, \sigma = 5.342\)</td>
+            <td>\(\mu = 12.996\	ext{ min}, \sigma = 5.342\)</td>
             <td>-7686.1</td>
             <td>15376.3</td>
             <td>15387.9</td>
@@ -294,7 +294,7 @@
             <td>1.907e-13</td>
           </tr>
           <tr>
-            <td>Log-Normal \(	ext{LogN}(\mu_{\ln}, \sigma_{\ln}^2)\)</td>
+            <td>Log-Normal \(\text{LogN}(\mu_{\ln}, \sigma_{\ln}^2)\)</td>
             <td>\(\mu_{\ln} = 2.432, \sigma_{\ln} = 0.602\)</td>
             <td>-8303.0</td>
             <td>16610.0</td>
@@ -315,15 +315,15 @@
       </table>
 
       <div class="formula-callout">
-        <h3>Analytical Insight on Match Won Probabilities \(P(	ext{Outcome} \mid T = t)\):</h3>
+        <h3>Analytical Insight on Match Won Probabilities \(P(\text{Outcome} \mid T = t)\):</h3>
         <p style="margin-top: 6px;">
-          1. <b>Early Phase (\(t < 6	ext{ min}\)):</b> Matches terminating early are driven by opening blunders and tactical traps (e.g. Scholar's mate variants, trapped queens). White captures the first-move advantage initiative, achieving win rates over <b>55%</b>.
+          1. <b>Early Phase (\(t < 6\text{ min}\)):</b> Matches terminating early are driven by opening blunders and tactical traps (e.g. Scholar's mate variants, trapped queens). White captures the first-move advantage initiative, achieving win rates over <b>55%</b>.
         </p>
         <p style="margin-top: 6px;">
-          2. <b>Middlegame Phase (\(6 \le t \le 14	ext{ min}\)):</b> Strategic equilibrium. Black's defensive resources equalize, and outcomes converge toward standard master distributions (\(pprox 48\%\) White, \(45\%\) Black).
+          2. <b>Middlegame Phase (\(6 \le t \le 14\text{ min}\)):</b> Strategic equilibrium. Black's defensive resources equalize, and outcomes converge toward standard master distributions (\(pprox 48\%\) White, \(45\%\) Black).
         </p>
         <p style="margin-top: 6px;">
-          3. <b>Endgame & Time Scramble (\(t > 15	ext{ min}\)):</b> Clock attrition. As pieces leave the board into simplified King-and-Pawn endgames, the Draw probability \(P(	ext{Draw} \mid t)\) rises steeply by <b>2.5× to 3×</b> compared to middlegames.
+          3. <b>Endgame & Time Scramble (\(t > 15\text{ min}\)):</b> Clock attrition. As pieces leave the board into simplified King-and-Pawn endgames, the Draw probability \(P(\text{Draw} \mid t)\) rises steeply by <b>2.5× to 3×</b> compared to middlegames.
         </p>
       </div>
     </div>
