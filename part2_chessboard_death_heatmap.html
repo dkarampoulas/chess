@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Part 2: Interactive Bloody Chessboard & Tactical Brawl Analysis</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body);"></script>
+  <style>
+    :root {
+      --bg: #0b0e14;
+      --card-bg: #151921;
+      --border: #2b313c;
+      --text: #c9d1d9;
+      --blood-dark: #3a0808;
+      --blood-mid: #8a1414;
+      --blood-bright: #e61919;
+      --blood-core: #ff3333;
+      --accent-gold: #d29922;
+      --accent-blue: #58a6ff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 24px;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .header h1 {
+      font-size: 2.2rem;
+      color: #ff4d4d;
+      text-shadow: 0 0 20px rgba(230, 25, 25, 0.4);
+      margin-bottom: 8px;
+    }
+    .header p {
+      color: #8b949e;
+      font-size: 1.1rem;
+    }
+    .badge {
+      display: inline-block;
+      padding: 5px 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border-radius: 20px;
+      background: rgba(230, 25, 25, 0.15);
+      color: #ff6666;
+      margin: 4px;
+      border: 1px solid rgba(230, 25, 25, 0.4);
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 620px 1fr;
+      gap: 28px;
+      align-items: start;
+    }
+    @media (max-width: 1100px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    /* CHESSBOARD STYLES */
+    .board-container {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .board-wrapper {
+      position: relative;
+      display: grid;
+      grid-template-columns: 24px 512px;
+      grid-template-rows: 512px 24px;
+      gap: 6px;
+    }
+    .rank-labels {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      align-items: center;
+      font-weight: bold;
+      color: #8b949e;
+      font-size: 0.85rem;
+    }
+    .file-labels {
+      grid-column: 2;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      font-weight: bold;
+      color: #8b949e;
+      font-size: 0.85rem;
+    }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(8, 64px);
+      grid-template-rows: repeat(8, 64px);
+      border: 3px solid #441111;
+      border-radius: 4px;
+      box-shadow: 0 0 25px rgba(180, 20, 20, 0.3);
+      background: #111;
+      user-select: none;
+    }
+    .square {
+      position: relative;
+      width: 64px;
+      height: 64px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 4px;
+      transition: all 0.15s ease-in-out;
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+    .square:hover {
+      transform: scale(1.08);
+      z-index: 10;
+      box-shadow: 0 0 15px #ff1a1a;
+      outline: 2px solid #fff;
+    }
+    .square.active {
+      outline: 3px solid var(--accent-gold);
+      z-index: 9;
+    }
+    .sq-coord {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.7);
+    }
+    .sq-deaths {
+      font-size: 0.75rem;
+      font-weight: 800;
+      align-self: flex-end;
+      color: #fff;
+      text-shadow: 0 1px 3px #000;
+    }
+    .sq-pct {
+      font-size: 0.65rem;
+      align-self: center;
+      color: rgba(255,255,255,0.85);
+      font-weight: 600;
+    }
+
+    .legend-bar {
+      margin-top: 18px;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.85rem;
+      color: #8b949e;
+    }
+    .gradient-track {
+      flex: 1;
+      height: 12px;
+      border-radius: 6px;
+      background: linear-gradient(to right, #1f232b, #591111, #aa1919, #ff2222);
+    }
+
+    .dossier {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 22px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+    .card h2 {
+      font-size: 1.35rem;
+      color: #fff;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .stat-box {
+      background: rgba(255,255,255,0.03);
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .stat-box .label {
+      font-size: 0.78rem;
+      color: #8b949e;
+      text-transform: uppercase;
+    }
+    .stat-box .val {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #fff;
+      margin-top: 4px;
+    }
+
+    .piece-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .piece-card {
+      background: rgba(255, 255, 255, 0.04);
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .piece-symbol {
+      font-size: 1.6rem;
+    }
+    .piece-name {
+      font-size: 0.75rem;
+      color: #8b949e;
+      margin-top: 2px;
+    }
+    .piece-count {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .piece-pct {
+      font-size: 0.75rem;
+      color: #ff6666;
+    }
+
+    .openings-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .opening-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: rgba(255,255,255,0.02);
+      border-radius: 6px;
+      border-left: 4px solid var(--blood-bright);
+    }
+    .opening-name { font-weight: 600; font-size: 0.9rem; color: #fff; }
+    .opening-eco { color: var(--accent-gold); font-weight: bold; margin-right: 8px; font-size: 0.85rem; }
+    .opening-deaths { font-weight: bold; color: #ff6666; font-size: 0.85rem; }
+
+    .brawl-box {
+      background: rgba(180, 20, 20, 0.1);
+      border: 1px solid rgba(230, 25, 25, 0.3);
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 14px;
+    }
+    .brawl-box h3 {
+      color: #ff6666;
+      font-size: 1.05rem;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Chessboard Carnage Heatmap: Spatial Piece Deaths</h1>
+      <p>Empirical Probability Distribution \(p_{	ext{emp}}(i) = rac{D_i}{D_{	ext{total}}}\), Piece Sacrifices, & Brawl Decisiveness</p>
+      <div style="margin-top: 10px;">
+        <span class="badge">Analyzed 2,500 Matches</span>
+        <span class="badge">Total Pieces Fallen: 44,166</span>
+        <span class="badge">Deadliest Square: #D4 (7.54%)</span>
+        <span class="badge">Uniform Expected: 1.56%</span>
+      </div>
+    </div>
+
+    <div class="layout">
+      <!-- Left: Interactive Chessboard -->
+      <div class="board-container">
+        <div class="board-wrapper">
+          <div class="rank-labels">
+            <div>8</div><div>7</div><div>6</div><div>5</div><div>4</div><div>3</div><div>2</div><div>1</div>
+          </div>
+          <div class="board" id="chessboard">
+            <!-- Squares rendered by JavaScript -->
+          </div>
+          <div class="file-labels">
+            <div>a</div><div>b</div><div>c</div><div>d</div><div>e</div><div>f</div><div>g</div><div>h</div>
+          </div>
+        </div>
+
+        <div class="legend-bar">
+          <span>Peaceful (0% deaths)</span>
+          <div class="gradient-track"></div>
+          <span>Epicenter (>7% deaths)</span>
+        </div>
+        <p style="font-size: 0.8rem; color: #8b949e; margin-top: 10px;">Click on any square to reveal its complete tactical dossier and brawl history.</p>
+      </div>
+
+      <!-- Right: Tactical Dossier Panel -->
+      <div class="dossier">
+        <!-- Square Overview Card -->
+        <div class="card">
+          <h2>
+            <span id="dossierTitle">Square D4 Tactical Dossier</span>
+            <span id="dossierRank" style="font-size: 0.9rem; color: #ff6666;">#1 Deadliest Square</span>
+          </h2>
+          <div class="stat-row">
+            <div class="stat-box">
+              <div class="label">Total Deaths (Captures)</div>
+              <div class="val" id="dossierDeaths">3,332</div>
+            </div>
+            <div class="stat-box">
+              <div class="label">Empirical Prob p_emp</div>
+              <div class="val" id="dossierProb" style="color: #ff6666;">7.54%</div>
+            </div>
+            <div class="stat-box">
+              <div class="label">Vs Uniform Ratio</div>
+              <div class="val" id="dossierRatio">4.83x</div>
+            </div>
+          </div>
+
+          <h3 style="font-size: 0.95rem; color: #fff; margin-bottom: 8px;">Victim Piece Distribution ("Who Dies Here"):</h3>
+          <div class="piece-grid" id="pieceGrid">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Opening Lines Card -->
+        <div class="card">
+          <h2>🔥 Openings & Movesets Leading to the Carnage</h2>
+          <p style="font-size: 0.85rem; color: #8b949e;">Top opening variations and move sequences that ignite combat on this square:</p>
+          <div class="openings-list" id="openingsList">
+            <!-- Rendered by JS -->
+          </div>
+
+          <!-- Brawl Outcome Section -->
+          <div class="brawl-box" id="brawlBox">
+            <h3>⚔️ The Brawl in the Square & Ultimate Decisiveness</h3>
+            <p id="brawlSummaryText" style="font-size: 0.9rem; color: #c9d1d9;">
+              When multi-capture sequences occur on this square, does winning the tactical exchange decide the match?
+            </p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+              <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px;">
+                <div style="font-size: 0.75rem; color: #8b949e;">If WHITE wins local brawl:</div>
+                <div style="font-size: 1.1rem; font-weight: bold; color: #fff;" id="whiteBrawlWinPct">
+                  P(White Win Match) = 47.1%
+                </div>
+              </div>
+              <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px;">
+                <div style="font-size: 0.75rem; color: #8b949e;">If BLACK wins local brawl:</div>
+                <div style="font-size: 1.1rem; font-weight: bold; color: var(--accent-blue);" id="blackBrawlWinPct">
+                  P(Black Win Match) = 54.6%
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const squaresData = [{"square": "d4", "deaths": 3332, "p_emp": 0.075443, "p_emp_percentage": 7.5443, "piece_breakdown": {"Pawn": {"count": 2245, "percentage": 67.38}, "Knight": {"count": 640, "percentage": 19.21}, "Bishop": {"count": 197, "percentage": 5.91}, "Rook": {"count": 114, "percentage": 3.42}, "Queen": {"count": 136, "percentage": 4.08}}, "outcomes": {"white_win_pct": 43.65, "black_win_pct": 45.01, "draw_pct": 11.35, "total_games_with_combat": 1322}, "rank": 1}, {"square": "d5", "deaths": 3231, "p_emp": 0.073156, "p_emp_percentage": 7.3156, "piece_breakdown": {"Pawn": {"count": 2177, "percentage": 67.38}, "Knight": {"count": 544, "percentage": 16.84}, "Bishop": {"count": 285, "percentage": 8.82}, "Rook": {"count": 90, "percentage": 2.79}, "Queen": {"count": 135, "percentage": 4.18}}, "outcomes": {"white_win_pct": 45.57, "black_win_pct": 42.62, "draw_pct": 11.81, "total_games_with_combat": 1253}, "rank": 2}, {"square": "e5", "deaths": 2339, "p_emp": 0.052959, "p_emp_percentage": 5.2959, "piece_breakdown": {"Pawn": {"count": 1198, "percentage": 51.22}, "Knight": {"count": 697, "percentage": 29.8}, "Bishop": {"count": 247, "percentage": 10.56}, "Rook": {"count": 109, "percentage": 4.66}, "Queen": {"count": 88, "percentage": 3.76}}, "outcomes": {"white_win_pct": 47.16, "black_win_pct": 42.09, "draw_pct": 10.75, "total_games_with_combat": 967}, "rank": 3}, {"square": "e4", "deaths": 2062, "p_emp": 0.046687, "p_emp_percentage": 4.6687, "piece_breakdown": {"Pawn": {"count": 1000, "percentage": 48.5}, "Knight": {"count": 678, "percentage": 32.88}, "Bishop": {"count": 246, "percentage": 11.93}, "Rook": {"count": 68, "percentage": 3.3}, "Queen": {"count": 70, "percentage": 3.39}}, "outcomes": {"white_win_pct": 41.86, "black_win_pct": 46.49, "draw_pct": 11.65, "total_games_with_combat": 884}, "rank": 4}, {"square": "c4", "deaths": 1421, "p_emp": 0.032174, "p_emp_percentage": 3.2174, "piece_breakdown": {"Pawn": {"count": 936, "percentage": 65.87}, "Knight": {"count": 161, "percentage": 11.33}, "Bishop": {"count": 188, "percentage": 13.23}, "Rook": {"count": 76, "percentage": 5.35}, "Queen": {"count": 60, "percentage": 4.22}}, "outcomes": {"white_win_pct": 44.59, "black_win_pct": 42.59, "draw_pct": 12.82, "total_games_with_combat": 702}, "rank": 5}, {"square": "f6", "deaths": 1393, "p_emp": 0.03154, "p_emp_percentage": 3.154, "piece_breakdown": {"Pawn": {"count": 346, "percentage": 24.84}, "Knight": {"count": 521, "percentage": 37.4}, "Bishop": {"count": 363, "percentage": 26.06}, "Rook": {"count": 75, "percentage": 5.38}, "Queen": {"count": 88, "percentage": 6.32}}, "outcomes": {"white_win_pct": 50.78, "black_win_pct": 38.01, "draw_pct": 11.21, "total_games_with_combat": 642}, "rank": 6}, {"square": "c6", "deaths": 1392, "p_emp": 0.031517, "p_emp_percentage": 3.1517, "piece_breakdown": {"Pawn": {"count": 362, "percentage": 26.01}, "Knight": {"count": 597, "percentage": 42.89}, "Bishop": {"count": 290, "percentage": 20.83}, "Rook": {"count": 93, "percentage": 6.68}, "Queen": {"count": 50, "percentage": 3.59}}, "outcomes": {"white_win_pct": 48.9, "black_win_pct": 40.38, "draw_pct": 10.73, "total_games_with_combat": 634}, "rank": 7}, {"square": "c3", "deaths": 1387, "p_emp": 0.031404, "p_emp_percentage": 3.1404, "piece_breakdown": {"Pawn": {"count": 379, "percentage": 27.33}, "Knight": {"count": 599, "percentage": 43.19}, "Bishop": {"count": 278, "percentage": 20.04}, "Rook": {"count": 89, "percentage": 6.42}, "Queen": {"count": 42, "percentage": 3.03}}, "outcomes": {"white_win_pct": 40.74, "black_win_pct": 48.85, "draw_pct": 10.41, "total_games_with_combat": 653}, "rank": 8}, {"square": "c5", "deaths": 1383, "p_emp": 0.031314, "p_emp_percentage": 3.1314, "piece_breakdown": {"Pawn": {"count": 862, "percentage": 62.33}, "Knight": {"count": 190, "percentage": 13.74}, "Bishop": {"count": 172, "percentage": 12.44}, "Rook": {"count": 88, "percentage": 6.36}, "Queen": {"count": 71, "percentage": 5.13}}, "outcomes": {"white_win_pct": 43.73, "black_win_pct": 42.51, "draw_pct": 13.76, "total_games_with_combat": 654}, "rank": 9}, {"square": "f3", "deaths": 1125, "p_emp": 0.025472, "p_emp_percentage": 2.5472, "piece_breakdown": {"Pawn": {"count": 319, "percentage": 28.36}, "Knight": {"count": 380, "percentage": 33.78}, "Bishop": {"count": 289, "percentage": 25.69}, "Rook": {"count": 56, "percentage": 4.98}, "Queen": {"count": 81, "percentage": 7.2}}, "outcomes": {"white_win_pct": 37.95, "black_win_pct": 50.0, "draw_pct": 12.05, "total_games_with_combat": 556}, "rank": 10}, {"square": "f5", "deaths": 1082, "p_emp": 0.024498, "p_emp_percentage": 2.4498, "piece_breakdown": {"Pawn": {"count": 640, "percentage": 59.15}, "Knight": {"count": 157, "percentage": 14.51}, "Bishop": {"count": 178, "percentage": 16.45}, "Rook": {"count": 58, "percentage": 5.36}, "Queen": {"count": 49, "percentage": 4.53}}, "outcomes": {"white_win_pct": 45.13, "black_win_pct": 41.2, "draw_pct": 13.67, "total_games_with_combat": 534}, "rank": 11}, {"square": "f4", "deaths": 1054, "p_emp": 0.023865, "p_emp_percentage": 2.3865, "piece_breakdown": {"Pawn": {"count": 551, "percentage": 52.28}, "Knight": {"count": 170, "percentage": 16.13}, "Bishop": {"count": 192, "percentage": 18.22}, "Rook": {"count": 63, "percentage": 5.98}, "Queen": {"count": 78, "percentage": 7.4}}, "outcomes": {"white_win_pct": 38.52, "black_win_pct": 48.44, "draw_pct": 13.04, "total_games_with_combat": 514}, "rank": 12}, {"square": "d6", "deaths": 1001, "p_emp": 0.022664, "p_emp_percentage": 2.2664, "piece_breakdown": {"Pawn": {"count": 388, "percentage": 38.76}, "Knight": {"count": 139, "percentage": 13.89}, "Bishop": {"count": 291, "percentage": 29.07}, "Rook": {"count": 81, "percentage": 8.09}, "Queen": {"count": 102, "percentage": 10.19}}, "outcomes": {"white_win_pct": 49.9, "black_win_pct": 36.02, "draw_pct": 14.08, "total_games_with_combat": 497}, "rank": 13}, {"square": "b5", "deaths": 988, "p_emp": 0.02237, "p_emp_percentage": 2.237, "piece_breakdown": {"Pawn": {"count": 697, "percentage": 70.55}, "Knight": {"count": 93, "percentage": 9.41}, "Bishop": {"count": 121, "percentage": 12.25}, "Rook": {"count": 23, "percentage": 2.33}, "Queen": {"count": 54, "percentage": 5.47}}, "outcomes": {"white_win_pct": 46.72, "black_win_pct": 38.57, "draw_pct": 14.71, "total_games_with_combat": 503}, "rank": 14}, {"square": "g5", "deaths": 955, "p_emp": 0.021623, "p_emp_percentage": 2.1623, "piece_breakdown": {"Pawn": {"count": 632, "percentage": 66.18}, "Knight": {"count": 119, "percentage": 12.46}, "Bishop": {"count": 123, "percentage": 12.88}, "Rook": {"count": 31, "percentage": 3.25}, "Queen": {"count": 50, "percentage": 5.24}}, "outcomes": {"white_win_pct": 48.85, "black_win_pct": 39.67, "draw_pct": 11.48, "total_games_with_combat": 479}, "rank": 15}, {"square": "e6", "deaths": 928, "p_emp": 0.021012, "p_emp_percentage": 2.1012, "piece_breakdown": {"Pawn": {"count": 442, "percentage": 47.63}, "Knight": {"count": 130, "percentage": 14.01}, "Bishop": {"count": 224, "percentage": 24.14}, "Rook": {"count": 80, "percentage": 8.62}, "Queen": {"count": 52, "percentage": 5.6}}, "outcomes": {"white_win_pct": 53.7, "black_win_pct": 35.94, "draw_pct": 10.36, "total_games_with_combat": 473}, "rank": 16}, {"square": "b4", "deaths": 855, "p_emp": 0.019359, "p_emp_percentage": 1.9359, "piece_breakdown": {"Pawn": {"count": 635, "percentage": 74.27}, "Knight": {"count": 74, "percentage": 8.65}, "Bishop": {"count": 85, "percentage": 9.94}, "Rook": {"count": 34, "percentage": 3.98}, "Queen": {"count": 27, "percentage": 3.16}}, "outcomes": {"white_win_pct": 41.72, "black_win_pct": 41.94, "draw_pct": 16.34, "total_games_with_combat": 453}, "rank": 17}, {"square": "d3", "deaths": 803, "p_emp": 0.018181, "p_emp_percentage": 1.8181, "piece_breakdown": {"Pawn": {"count": 159, "percentage": 19.8}, "Knight": {"count": 127, "percentage": 15.82}, "Bishop": {"count": 344, "percentage": 42.84}, "Rook": {"count": 101, "percentage": 12.58}, "Queen": {"count": 72, "percentage": 8.97}}, "outcomes": {"white_win_pct": 42.93, "black_win_pct": 47.15, "draw_pct": 9.93, "total_games_with_combat": 403}, "rank": 18}, {"square": "e3", "deaths": 797, "p_emp": 0.018046, "p_emp_percentage": 1.8046, "piece_breakdown": {"Pawn": {"count": 233, "percentage": 29.23}, "Knight": {"count": 133, "percentage": 16.69}, "Bishop": {"count": 257, "percentage": 32.25}, "Rook": {"count": 87, "percentage": 10.92}, "Queen": {"count": 87, "percentage": 10.92}}, "outcomes": {"white_win_pct": 36.27, "black_win_pct": 52.64, "draw_pct": 11.08, "total_games_with_combat": 397}, "rank": 19}, {"square": "g4", "deaths": 797, "p_emp": 0.018046, "p_emp_percentage": 1.8046, "piece_breakdown": {"Pawn": {"count": 566, "percentage": 71.02}, "Knight": {"count": 87, "percentage": 10.92}, "Bishop": {"count": 76, "percentage": 9.54}, "Rook": {"count": 27, "percentage": 3.39}, "Queen": {"count": 41, "percentage": 5.14}}, "outcomes": {"white_win_pct": 43.44, "black_win_pct": 40.81, "draw_pct": 15.75, "total_games_with_combat": 419}, "rank": 20}, {"square": "g6", "deaths": 720, "p_emp": 0.016302, "p_emp_percentage": 1.6302, "piece_breakdown": {"Pawn": {"count": 402, "percentage": 55.83}, "Knight": {"count": 109, "percentage": 15.14}, "Bishop": {"count": 113, "percentage": 15.69}, "Rook": {"count": 42, "percentage": 5.83}, "Queen": {"count": 54, "percentage": 7.5}}, "outcomes": {"white_win_pct": 49.86, "black_win_pct": 39.78, "draw_pct": 10.35, "total_games_with_combat": 367}, "rank": 21}, {"square": "b3", "deaths": 645, "p_emp": 0.014604, "p_emp_percentage": 1.4604, "piece_breakdown": {"Pawn": {"count": 335, "percentage": 51.94}, "Knight": {"count": 88, "percentage": 13.64}, "Bishop": {"count": 83, "percentage": 12.87}, "Rook": {"count": 37, "percentage": 5.74}, "Queen": {"count": 102, "percentage": 15.81}}, "outcomes": {"white_win_pct": 40.4, "black_win_pct": 41.24, "draw_pct": 18.36, "total_games_with_combat": 354}, "rank": 22}, {"square": "g3", "deaths": 622, "p_emp": 0.014083, "p_emp_percentage": 1.4083, "piece_breakdown": {"Pawn": {"count": 324, "percentage": 52.09}, "Knight": {"count": 100, "percentage": 16.08}, "Bishop": {"count": 124, "percentage": 19.94}, "Rook": {"count": 39, "percentage": 6.27}, "Queen": {"count": 35, "percentage": 5.63}}, "outcomes": {"white_win_pct": 38.34, "black_win_pct": 50.61, "draw_pct": 11.04, "total_games_with_combat": 326}, "rank": 23}, {"square": "e7", "deaths": 611, "p_emp": 0.013834, "p_emp_percentage": 1.3834, "piece_breakdown": {"Pawn": {"count": 68, "percentage": 11.13}, "Knight": {"count": 100, "percentage": 16.37}, "Bishop": {"count": 277, "percentage": 45.34}, "Rook": {"count": 106, "percentage": 17.35}, "Queen": {"count": 60, "percentage": 9.82}}, "outcomes": {"white_win_pct": 53.64, "black_win_pct": 36.06, "draw_pct": 10.3, "total_games_with_combat": 330}, "rank": 24}, {"square": "d2", "deaths": 570, "p_emp": 0.012906, "p_emp_percentage": 1.2906, "piece_breakdown": {"Pawn": {"count": 41, "percentage": 7.19}, "Knight": {"count": 152, "percentage": 26.67}, "Bishop": {"count": 169, "percentage": 29.65}, "Rook": {"count": 114, "percentage": 20.0}, "Queen": {"count": 94, "percentage": 16.49}}, "outcomes": {"white_win_pct": 37.02, "black_win_pct": 52.6, "draw_pct": 10.38, "total_games_with_combat": 289}, "rank": 25}, {"square": "d8", "deaths": 568, "p_emp": 0.012861, "p_emp_percentage": 1.2861, "piece_breakdown": {"Pawn": {"count": 0, "percentage": 0.0}, "Knight": {"count": 30, "percentage": 5.28}, "Bishop": {"count": 29, "percentage": 5.11}, "Rook": {"count": 333, "percentage": 58.63}, "Queen": {"count": 176, "percentage": 30.99}}, "outcomes": {"white_win_pct": 50.19, "black_win_pct": 33.96, "draw_pct": 15.85, "total_games_with_combat": 265}, "rank": 26}, {"square": "d7", "deaths": 560, "p_emp": 0.012679, "p_emp_percentage": 1.2679, "piece_breakdown": {"Pawn": {"count": 47, "percentage": 8.39}, "Knight": {"count": 160, "percentage": 28.57}, "Bishop": {"count": 171, "percentage": 30.54}, "Rook": {"count": 114, "percentage": 20.36}, "Queen": {"count": 68, "percentage": 12.14}}, "outcomes": {"white_win_pct": 55.09, "black_win_pct": 32.98, "draw_pct": 11.93, "total_games_with_combat": 285}, "rank": 27}, {"square": "g7", "deaths": 507, "p_emp": 0.011479, "p_emp_percentage": 1.1479, "piece_breakdown": {"Pawn": {"count": 200, "percentage": 39.45}, "Knight": {"count": 23, "percentage": 4.54}, "Bishop": {"count": 206, "percentage": 40.63}, "Rook": {"count": 42, "percentage": 8.28}, "Queen": {"count": 36, "percentage": 7.1}}, "outcomes": {"white_win_pct": 56.87, "black_win_pct": 32.27, "draw_pct": 10.86, "total_games_with_combat": 313}, "rank": 28}, {"square": "b6", "deaths": 506, "p_emp": 0.011457, "p_emp_percentage": 1.1457, "piece_breakdown": {"Pawn": {"count": 226, "percentage": 44.66}, "Knight": {"count": 73, "percentage": 14.43}, "Bishop": {"count": 66, "percentage": 13.04}, "Rook": {"count": 43, "percentage": 8.5}, "Queen": {"count": 98, "percentage": 19.37}}, "outcomes": {"white_win_pct": 55.05, "black_win_pct": 34.49, "draw_pct": 10.45, "total_games_with_combat": 287}, "rank": 29}, {"square": "f7", "deaths": 498, "p_emp": 0.011276, "p_emp_percentage": 1.1276, "piece_breakdown": {"Pawn": {"count": 294, "percentage": 59.04}, "Knight": {"count": 39, "percentage": 7.83}, "Bishop": {"count": 34, "percentage": 6.83}, "Rook": {"count": 84, "percentage": 16.87}, "Queen": {"count": 47, "percentage": 9.44}}, "outcomes": {"white_win_pct": 54.52, "black_win_pct": 34.64, "draw_pct": 10.84, "total_games_with_combat": 332}, "rank": 30}, {"square": "d1", "deaths": 493, "p_emp": 0.011162, "p_emp_percentage": 1.1162, "piece_breakdown": {"Pawn": {"count": 0, "percentage": 0.0}, "Knight": {"count": 23, "percentage": 4.67}, "Bishop": {"count": 30, "percentage": 6.09}, "Rook": {"count": 286, "percentage": 58.01}, "Queen": {"count": 154, "percentage": 31.24}}, "outcomes": {"white_win_pct": 37.45, "black_win_pct": 50.62, "draw_pct": 11.93, "total_games_with_combat": 243}, "rank": 31}, {"square": "b7", "deaths": 472, "p_emp": 0.010687, "p_emp_percentage": 1.0687, "piece_breakdown": {"Pawn": {"count": 318, "percentage": 67.37}, "Knight": {"count": 14, "percentage": 2.97}, "Bishop": {"count": 84, "percentage": 17.8}, "Rook": {"count": 38, "percentage": 8.05}, "Queen": {"count": 18, "percentage": 3.81}}, "outcomes": {"white_win_pct": 49.07, "black_win_pct": 39.26, "draw_pct": 11.67, "total_games_with_combat": 377}, "rank": 32}, {"square": "b2", "deaths": 466, "p_emp": 0.010551, "p_emp_percentage": 1.0551, "piece_breakdown": {"Pawn": {"count": 322, "percentage": 69.1}, "Knight": {"count": 4, "percentage": 0.86}, "Bishop": {"count": 67, "percentage": 14.38}, "Rook": {"count": 48, "percentage": 10.3}, "Queen": {"count": 25, "percentage": 5.36}}, "outcomes": {"white_win_pct": 37.22, "black_win_pct": 47.5, "draw_pct": 15.28, "total_games_with_combat": 360}, "rank": 33}, {"square": "e2", "deaths": 437, "p_emp": 0.009894, "p_emp_percentage": 0.9894, "piece_breakdown": {"Pawn": {"count": 63, "percentage": 14.42}, "Knight": {"count": 88, "percentage": 20.14}, "Bishop": {"count": 114, "percentage": 26.09}, "Rook": {"count": 101, "percentage": 23.11}, "Queen": {"count": 71, "percentage": 16.25}}, "outcomes": {"white_win_pct": 35.63, "black_win_pct": 52.23, "draw_pct": 12.15, "total_games_with_combat": 247}, "rank": 34}, {"square": "f2", "deaths": 415, "p_emp": 0.009396, "p_emp_percentage": 0.9396, "piece_breakdown": {"Pawn": {"count": 224, "percentage": 53.98}, "Knight": {"count": 35, "percentage": 8.43}, "Bishop": {"count": 41, "percentage": 9.88}, "Rook": {"count": 80, "percentage": 19.28}, "Queen": {"count": 35, "percentage": 8.43}}, "outcomes": {"white_win_pct": 30.4, "black_win_pct": 56.78, "draw_pct": 12.82, "total_games_with_combat": 273}, "rank": 35}, {"square": "a5", "deaths": 415, "p_emp": 0.009396, "p_emp_percentage": 0.9396, "piece_breakdown": {"Pawn": {"count": 302, "percentage": 72.77}, "Knight": {"count": 38, "percentage": 9.16}, "Bishop": {"count": 19, "percentage": 4.58}, "Rook": {"count": 31, "percentage": 7.47}, "Queen": {"count": 25, "percentage": 6.02}}, "outcomes": {"white_win_pct": 44.16, "black_win_pct": 37.96, "draw_pct": 17.88, "total_games_with_combat": 274}, "rank": 36}, {"square": "h4", "deaths": 408, "p_emp": 0.009238, "p_emp_percentage": 0.9238, "piece_breakdown": {"Pawn": {"count": 293, "percentage": 71.81}, "Knight": {"count": 52, "percentage": 12.75}, "Bishop": {"count": 29, "percentage": 7.11}, "Rook": {"count": 22, "percentage": 5.39}, "Queen": {"count": 12, "percentage": 2.94}}, "outcomes": {"white_win_pct": 37.77, "black_win_pct": 46.76, "draw_pct": 15.47, "total_games_with_combat": 278}, "rank": 37}, {"square": "g2", "deaths": 393, "p_emp": 0.008898, "p_emp_percentage": 0.8898, "piece_breakdown": {"Pawn": {"count": 157, "percentage": 39.95}, "Knight": {"count": 17, "percentage": 4.33}, "Bishop": {"count": 158, "percentage": 40.2}, "Rook": {"count": 40, "percentage": 10.18}, "Queen": {"count": 21, "percentage": 5.34}}, "outcomes": {"white_win_pct": 31.75, "black_win_pct": 53.57, "draw_pct": 14.68, "total_games_with_combat": 252}, "rank": 38}, {"square": "a6", "deaths": 390, "p_emp": 0.00883, "p_emp_percentage": 0.883, "piece_breakdown": {"Pawn": {"count": 254, "percentage": 65.13}, "Knight": {"count": 17, "percentage": 4.36}, "Bishop": {"count": 69, "percentage": 17.69}, "Rook": {"count": 27, "percentage": 6.92}, "Queen": {"count": 23, "percentage": 5.9}}, "outcomes": {"white_win_pct": 52.29, "black_win_pct": 34.73, "draw_pct": 12.98, "total_games_with_combat": 262}, "rank": 39}, {"square": "h5", "deaths": 383, "p_emp": 0.008672, "p_emp_percentage": 0.8672, "piece_breakdown": {"Pawn": {"count": 295, "percentage": 77.02}, "Knight": {"count": 36, "percentage": 9.4}, "Bishop": {"count": 17, "percentage": 4.44}, "Rook": {"count": 18, "percentage": 4.7}, "Queen": {"count": 17, "percentage": 4.44}}, "outcomes": {"white_win_pct": 45.75, "black_win_pct": 35.22, "draw_pct": 19.03, "total_games_with_combat": 247}, "rank": 40}, {"square": "a4", "deaths": 370, "p_emp": 0.008377, "p_emp_percentage": 0.8377, "piece_breakdown": {"Pawn": {"count": 277, "percentage": 74.86}, "Knight": {"count": 31, "percentage": 8.38}, "Bishop": {"count": 22, "percentage": 5.95}, "Rook": {"count": 21, "percentage": 5.68}, "Queen": {"count": 19, "percentage": 5.14}}, "outcomes": {"white_win_pct": 39.77, "black_win_pct": 44.4, "draw_pct": 15.83, "total_games_with_combat": 259}, "rank": 41}, {"square": "c2", "deaths": 356, "p_emp": 0.00806, "p_emp_percentage": 0.806, "piece_breakdown": {"Pawn": {"count": 149, "percentage": 41.85}, "Knight": {"count": 33, "percentage": 9.27}, "Bishop": {"count": 47, "percentage": 13.2}, "Rook": {"count": 83, "percentage": 23.31}, "Queen": {"count": 44, "percentage": 12.36}}, "outcomes": {"white_win_pct": 34.48, "black_win_pct": 53.45, "draw_pct": 12.07, "total_games_with_combat": 232}, "rank": 42}, {"square": "h6", "deaths": 343, "p_emp": 0.007766, "p_emp_percentage": 0.7766, "piece_breakdown": {"Pawn": {"count": 218, "percentage": 63.56}, "Knight": {"count": 26, "percentage": 7.58}, "Bishop": {"count": 67, "percentage": 19.53}, "Rook": {"count": 24, "percentage": 7.0}, "Queen": {"count": 8, "percentage": 2.33}}, "outcomes": {"white_win_pct": 45.22, "black_win_pct": 40.43, "draw_pct": 14.35, "total_games_with_combat": 230}, "rank": 43}, {"square": "h3", "deaths": 328, "p_emp": 0.007427, "p_emp_percentage": 0.7427, "piece_breakdown": {"Pawn": {"count": 211, "percentage": 64.33}, "Knight": {"count": 29, "percentage": 8.84}, "Bishop": {"count": 47, "percentage": 14.33}, "Rook": {"count": 24, "percentage": 7.32}, "Queen": {"count": 17, "percentage": 5.18}}, "outcomes": {"white_win_pct": 37.09, "black_win_pct": 49.77, "draw_pct": 13.15, "total_games_with_combat": 213}, "rank": 44}, {"square": "e1", "deaths": 325, "p_emp": 0.007359, "p_emp_percentage": 0.7359, "piece_breakdown": {"Pawn": {"count": 0, "percentage": 0.0}, "Knight": {"count": 23, "percentage": 7.08}, "Bishop": {"count": 21, "percentage": 6.46}, "Rook": {"count": 229, "percentage": 70.46}, "Queen": {"count": 52, "percentage": 16.0}}, "outcomes": {"white_win_pct": 32.1, "black_win_pct": 59.26, "draw_pct": 8.64, "total_games_with_combat": 162}, "rank": 45}, {"square": "f8", "deaths": 320, "p_emp": 0.007245, "p_emp_percentage": 0.7245, "piece_breakdown": {"Pawn": {"count": 0, "percentage": 0.0}, "Knight": {"count": 36, "percentage": 11.25}, "Bishop": {"count": 66, "percentage": 20.62}, "Rook": {"count": 184, "percentage": 57.5}, "Queen": {"count": 34, "percentage": 10.62}}, "outcomes": {"white_win_pct": 56.73, "black_win_pct": 35.67, "draw_pct": 7.6, "total_games_with_combat": 171}, "rank": 46}, {"square": "a3", "deaths": 316, "p_emp": 0.007155, "p_emp_percentage": 0.7155, "piece_breakdown": {"Pawn": {"count": 209, "percentage": 66.14}, "Knight": {"count": 17, "percentage": 5.38}, "Bishop": {"count": 42, "percentage": 13.29}, "Rook": {"count": 36, "percentage": 11.39}, "Queen": {"count": 12, "percentage": 3.8}}, "outcomes": {"white_win_pct": 35.78, "black_win_pct": 50.92, "draw_pct": 13.3, "total_games_with_combat": 218}, "rank": 47}, {"square": "c7", "deaths": 307, "p_emp": 0.006951, "p_emp_percentage": 0.6951, "piece_breakdown": {"Pawn": {"count": 148, "percentage": 48.21}, "Knight": {"count": 19, "percentage": 6.19}, "Bishop": {"count": 35, "percentage": 11.4}, "Rook": {"count": 52, "percentage": 16.94}, "Queen": {"count": 53, "percentage": 17.26}}, "outcomes": {"white_win_pct": 54.33, "black_win_pct": 32.21, "draw_pct": 13.46, "total_games_with_combat": 208}, "rank": 48}, {"square": "a2", "deaths": 302, "p_emp": 0.006838, "p_emp_percentage": 0.6838, "piece_breakdown": {"Pawn": {"count": 249, "percentage": 82.45}, "Knight": {"count": 6, "percentage": 1.99}, "Bishop": {"count": 9, "percentage": 2.98}, "Rook": {"count": 27, "percentage": 8.94}, "Queen": {"count": 11, "percentage": 3.64}}, "outcomes": {"white_win_pct": 40.47, "black_win_pct": 47.86, "draw_pct": 11.67, "total_games_with_combat": 257}, "rank": 49}, {"square": "c1", "deaths": 300, "p_emp": 0.006793, "p_emp_percentage": 0.6793, "piece_breakdown": {"Pawn": {"count": 0, "percentage": 0.0}, "Knight": {"count": 24, "percentage": 8.0}, "Bishop": {"count": 53, "percentage": 17.67}, "Rook": {"count": 187, "percentage": 62.33}, "Queen": {"count": 36, "percentage": 12.0}}, "outcomes": {"white_win_pct": 40.38, "black_win_pct": 44.23, "draw_pct": 15.38, "total_games_with_combat": 156}, "rank": 50}, {"square": "a7", "deaths": 294, "p_emp": 0.006657, "p_emp_percentage": 0.6657, "piece_breakdown": {"Pawn": {"count": 235, "percentage": 79.93}, "Knight": {"count": 8, "percentage": 2.72}, "Bishop": {"count": 18, "percentage": 6.12}, "Rook": {"count": 25, "percentage": 8.5}, "Queen": {"count": 8, "percentage": 2.72}}, "outcomes": {"white_win_pct": 51.01, "black_win_pct": 35.22, "draw_pct": 13.77, "total_games_with_combat": 247}, "rank": 51}, {"square": "c8", "deaths": 288, "p_emp": 0.006521, "p_emp_percentage": 0.6521, "piece_breakdown": {"Pawn": {"count": 0, "percentage": 0.0}, "Knight": {"count": 28, "percentage": 9.72}, "Bishop": {"count": 64, "percentage": 22.22}, "Rook": {"count": 174, "percentage": 60.42}, "Queen": {"count": 22, "percentage": 7.64}}, "outcomes": {"white_win_pct": 49.03, "black_win_pct": 36.77, "draw_pct": 14.19, "total_games_with_combat": 155}, "rank": 52}, {"square": "f1", "deaths": 251, "p_emp": 0.005683, "p_emp_percentage": 0.5683, "piece_breakdown": {"Pawn": {"count": 0, "percentage": 0.0}, "Knight": {"count": 23, "percentage": 9.16}, "Bishop": {"count": 72, "percentage": 28.69}, "Rook": {"count": 138, "percentage": 54.98}, "Queen": {"count": 18, "percentage": 7.17}}, "outcomes": {"white_win_pct": 30.83, "black_win_pct": 56.39, "draw_pct": 12.78, "total_games_with_combat": 133}, "rank": 53}, {"square": "e8", "deaths": 243, "p_emp": 0.005502, "p_emp_percentage": 0.5502, "piece_breakdown": {"Pawn": {"count": 0, "percentage": 0.0}, "Knight": {"count": 26, "percentage": 10.7}, "Bishop": {"count": 23, "percentage": 9.47}, "Rook": {"count": 158, "percentage": 65.02}, "Queen": {"count": 36, "percentage": 14.81}}, "outcomes": {"white_win_pct": 59.68, "black_win_pct": 25.0, "draw_pct": 15.32, "total_games_with_combat": 124}, "rank": 54}, {"square": "a8", "deaths": 238, "p_emp": 0.005389, "p_emp_percentage": 0.5389, "piece_breakdown": {"Pawn": {"count": 0, "percentage": 0.0}, "Knight": {"count": 17, "percentage": 7.14}, "Bishop": {"count": 21, "percentage": 8.82}, "Rook": {"count": 183, "percentage": 76.89}, "Queen": {"count": 17, "percentage": 7.14}}, "outcomes": {"white_win_pct": 51.85, "black_win_pct": 34.81, "draw_pct": 13.33, "total_games_with_combat": 135}, "rank": 55}, {"square": "h7", "deaths": 224, "p_emp": 0.005072, "p_emp_percentage": 0.5072, "piece_breakdown": {"Pawn": {"count": 149, "percentage": 66.52}, "Knight": {"count": 14, "percentage": 6.25}, "Bishop": {"count": 26, "percentage": 11.61}, "Rook": {"count": 25, "percentage": 11.16}, "Queen": {"count": 10, "percentage": 4.46}}, "outcomes": {"white_win_pct": 49.7, "black_win_pct": 37.72, "draw_pct": 12.57, "total_games_with_combat": 167}, "rank": 56}, {"square": "a1", "deaths": 195, "p_emp": 0.004415, "p_emp_percentage": 0.4415, "piece_breakdown": {"Pawn": {"count": 0, "percentage": 0.0}, "Knight": {"count": 9, "percentage": 4.62}, "Bishop": {"count": 9, "percentage": 4.62}, "Rook": {"count": 157, "percentage": 80.51}, "Queen": {"count": 20, "percentage": 10.26}}, "outcomes": {"white_win_pct": 28.7, "black_win_pct": 57.39, "draw_pct": 13.91, "total_games_with_combat": 115}, "rank": 57}, {"square": "h2", "deaths": 194, "p_emp": 0.004393, "p_emp_percentage": 0.4393, "piece_breakdown": {"Pawn": {"count": 146, "percentage": 75.26}, "Knight": {"count": 7, "percentage": 3.61}, "Bishop": {"count": 15, "percentage": 7.73}, "Rook": {"count": 15, "percentage": 7.73}, "Queen": {"count": 11, "percentage": 5.67}}, "outcomes": {"white_win_pct": 34.93, "black_win_pct": 56.16, "draw_pct": 8.9, "total_games_with_combat": 146}, "rank": 58}, {"square": "b8", "deaths": 146, "p_emp": 0.003306, "p_emp_percentage": 0.3306, "piece_breakdown": {"Pawn": {"count": 0, "percentage": 0.0}, "Knight": {"count": 17, "percentage": 11.64}, "Bishop": {"count": 15, "percentage": 10.27}, "Rook": {"count": 93, "percentage": 63.7}, "Queen": {"count": 21, "percentage": 14.38}}, "outcomes": {"white_win_pct": 47.44, "black_win_pct": 39.74, "draw_pct": 12.82, "total_games_with_combat": 78}, "rank": 59}, {"square": "b1", "deaths": 109, "p_emp": 0.002468, "p_emp_percentage": 0.2468, "piece_breakdown": {"Pawn": {"count": 0, "percentage": 0.0}, "Knight": {"count": 13, "percentage": 11.93}, "Bishop": {"count": 23, "percentage": 21.1}, "Rook": {"count": 60, "percentage": 55.05}, "Queen": {"count": 13, "percentage": 11.93}}, "outcomes": {"white_win_pct": 36.07, "black_win_pct": 50.82, "draw_pct": 13.11, "total_games_with_combat": 61}, "rank": 60}, {"square": "h8", "deaths": 98, "p_emp": 0.002219, "p_emp_percentage": 0.2219, "piece_breakdown": {"Pawn": {"count": 0, "percentage": 0.0}, "Knight": {"count": 8, "percentage": 8.16}, "Bishop": {"count": 9, "percentage": 9.18}, "Rook": {"count": 69, "percentage": 70.41}, "Queen": {"count": 12, "percentage": 12.24}}, "outcomes": {"white_win_pct": 64.06, "black_win_pct": 34.38, "draw_pct": 1.56, "total_games_with_combat": 64}, "rank": 61}, {"square": "h1", "deaths": 86, "p_emp": 0.001947, "p_emp_percentage": 0.1947, "piece_breakdown": {"Pawn": {"count": 0, "percentage": 0.0}, "Knight": {"count": 7, "percentage": 8.14}, "Bishop": {"count": 4, "percentage": 4.65}, "Rook": {"count": 61, "percentage": 70.93}, "Queen": {"count": 14, "percentage": 16.28}}, "outcomes": {"white_win_pct": 28.85, "black_win_pct": 59.62, "draw_pct": 11.54, "total_games_with_combat": 52}, "rank": 62}, {"square": "g1", "deaths": 71, "p_emp": 0.001608, "p_emp_percentage": 0.1608, "piece_breakdown": {"Pawn": {"count": 0, "percentage": 0.0}, "Knight": {"count": 9, "percentage": 12.68}, "Bishop": {"count": 14, "percentage": 19.72}, "Rook": {"count": 36, "percentage": 50.7}, "Queen": {"count": 12, "percentage": 16.9}}, "outcomes": {"white_win_pct": 21.62, "black_win_pct": 70.27, "draw_pct": 8.11, "total_games_with_combat": 37}, "rank": 63}, {"square": "g8", "deaths": 58, "p_emp": 0.001313, "p_emp_percentage": 0.1313, "piece_breakdown": {"Pawn": {"count": 0, "percentage": 0.0}, "Knight": {"count": 7, "percentage": 12.07}, "Bishop": {"count": 10, "percentage": 17.24}, "Rook": {"count": 31, "percentage": 53.45}, "Queen": {"count": 10, "percentage": 17.24}}, "outcomes": {"white_win_pct": 60.0, "black_win_pct": 22.86, "draw_pct": 17.14, "total_games_with_combat": 35}, "rank": 64}];
+    const deepdiveData = {"square": "d4", "deaths": 3332, "p_emp": 0.075443, "p_emp_percentage": 7.5443, "piece_breakdown": {"Pawn": {"count": 2245, "percentage": 67.38}, "Knight": {"count": 640, "percentage": 19.21}, "Bishop": {"count": 197, "percentage": 5.91}, "Rook": {"count": 114, "percentage": 3.42}, "Queen": {"count": 136, "percentage": 4.08}}, "outcomes": {"white_win_pct": 43.65, "black_win_pct": 45.01, "draw_pct": 11.35, "total_games_with_combat": 1322}, "brawl_statistics": {"total_multi_piece_brawls": 1251, "brawl_winner_counts": {"equal": 1097, "white": 68, "black": 86}, "game_outcome_counts_after_brawl": {"black": 568, "white": 529, "draw": 154}, "p_game_win_given_brawl_win_white": 0.4706, "p_game_win_given_brawl_win_black": 0.5465}, "top_openings": [{"eco": "B54", "name": "Sicilian Defense: Modern Variations, Main Line", "death_count": 209}, {"eco": "B23", "name": "Sicilian Defense: Closed", "death_count": 64}, {"eco": "B40", "name": "Sicilian Defense: French Variation, Normal", "death_count": 58}, {"eco": "C02", "name": "French Defense: Advance Variation", "death_count": 51}, {"eco": "B44", "name": "Sicilian Defense: Taimanov Variation", "death_count": 48}, {"eco": "D01", "name": "Rapport-Jobava System", "death_count": 46}, {"eco": "D02", "name": "Queen's Pawn Game: London System", "death_count": 46}, {"eco": "B32", "name": "Sicilian Defense: Accelerated Dragon", "death_count": 43}, {"eco": "B41", "name": "Sicilian Defense: Kan Variation", "death_count": 43}, {"eco": "B33", "name": "Sicilian Defense: Open", "death_count": 38}, {"eco": "E10", "name": "Indian Defense: Anti-Nimzo-Indian", "death_count": 37}, {"eco": "B23", "name": "Sicilian Defense: Closed, Traditional", "death_count": 37}], "top_movesets": [{"moves": "e4 c5 Nf3 d6 d4 cxd4", "count": 249}, {"moves": "e4 c5 Nf3 e6 d4 cxd4", "count": 145}, {"moves": "e4 c5 Nf3 Nc6 d4 cxd4", "count": 113}, {"moves": "e4 e5 Nf3 Nc6 Bc4 Bc5", "count": 64}, {"moves": "e4 e6 d4 d5 Nc3 Nf6", "count": 61}, {"moves": "e4 e6 d4 d5 e5 c5", "count": 55}, {"moves": "e4 e5 Nf3 Nc6 Nc3 Nf6", "count": 54}, {"moves": "d4 d5 c4 e6 Nc3 Nf6", "count": 51}]};
+    const maxDeaths = 3332;
+
+    const squaresMap = {};
+    squaresData.forEach(s => { squaresMap[s.square] = s; });
+
+    const ranks = ['8','7','6','5','4','3','2','1'];
+    const files = ['a','b','c','d','e','f','g','h'];
+    const boardEl = document.getElementById('chessboard');
+
+    let activeSq = deepdiveData.square;
+
+    function renderBoard() {
+      boardEl.innerHTML = '';
+      ranks.forEach((r, rIdx) => {
+        files.forEach((f, fIdx) => {
+          const sqName = f + r;
+          const sqData = squaresMap[sqName] || { deaths: 0, p_emp_percentage: 0, rank: 64 };
+          const isLight = (rIdx + fIdx) % 2 === 0;
+
+          const ratio = sqData.deaths / maxDeaths;
+          
+          let bgStyle = '';
+          if (sqData.deaths === 0) {
+            bgStyle = isLight ? '#2d3441' : '#161b22';
+          } else {
+            const bloodAlpha = Math.min(0.95, 0.15 + Math.pow(ratio, 0.75) * 0.82);
+            const redAmount = Math.round(100 + ratio * 155);
+            bgStyle = `rgba(${redAmount}, ${Math.round(20 * (1 - ratio))}, ${Math.round(25 * (1 - ratio))}, ${bloodAlpha})`;
+          }
+
+          const sqEl = document.createElement('div');
+          sqEl.className = 'square' + (sqName === activeSq ? ' active' : '');
+          sqEl.style.backgroundColor = bgStyle;
+          sqEl.title = `${sqName.toUpperCase()}: ${sqData.deaths} deaths (${sqData.p_emp_percentage}%)`;
+
+          sqEl.innerHTML = `
+            <div class="sq-coord">${sqName}</div>
+            <div class="sq-pct">${sqData.p_emp_percentage > 0.5 ? sqData.p_emp_percentage.toFixed(1) + '%' : ''}</div>
+            <div class="sq-deaths">${sqData.deaths > 0 ? sqData.deaths : ''}</div>
+          `;
+
+          sqEl.addEventListener('click', () => {
+            selectSquare(sqName);
+          });
+
+          boardEl.appendChild(sqEl);
+        });
+      });
+    }
+
+    const pieceIcons = {
+      'Pawn': '♟',
+      'Knight': '♞',
+      'Bishop': '♝',
+      'Rook': '♜',
+      'Queen': '♛'
+    };
+
+    function selectSquare(sqName) {
+      activeSq = sqName;
+      renderBoard();
+      const sqData = squaresMap[sqName];
+      if (!sqData) return;
+
+      document.getElementById('dossierTitle').innerText = `Square ${sqName.toUpperCase()} Tactical Dossier`;
+      document.getElementById('dossierRank').innerText = `#${sqData.rank} Deadliest Square on Board`;
+      document.getElementById('dossierDeaths').innerText = sqData.deaths.toLocaleString();
+      document.getElementById('dossierProb').innerText = sqData.p_emp_percentage.toFixed(2) + '%';
+      document.getElementById('dossierRatio').innerText = (sqData.p_emp_percentage / 1.5625).toFixed(2) + 'x';
+
+      const pGrid = document.getElementById('pieceGrid');
+      pGrid.innerHTML = '';
+      for (const [pName, pInfo] of Object.entries(sqData.piece_breakdown)) {
+        const pCard = document.createElement('div');
+        pCard.className = 'piece-card';
+        pCard.innerHTML = `
+          <div class="piece-symbol">${pieceIcons[pName] || '♟'}</div>
+          <div class="piece-count">${pInfo.count}</div>
+          <div class="piece-name">${pName}</div>
+          <div class="piece-pct">${pInfo.percentage}%</div>
+        `;
+        pGrid.appendChild(pCard);
+      }
+
+      const opList = document.getElementById('openingsList');
+      opList.innerHTML = '';
+      if (sqName === deepdiveData.square) {
+        deepdiveData.top_openings.slice(0, 6).forEach(op => {
+          const item = document.createElement('div');
+          item.className = 'opening-item';
+          item.innerHTML = `
+            <div>
+              <span class="opening-eco">[${op.eco}]</span>
+              <span class="opening-name">${op.name}</span>
+            </div>
+            <div class="opening-deaths">${op.death_count} deaths</div>
+          `;
+          opList.appendChild(item);
+        });
+
+        document.getElementById('brawlSummaryText').innerText = 
+          `Multi-capture brawls on ${sqName.toUpperCase()}: ${deepdiveData.brawl_statistics.total_multi_piece_brawls} recorded skirmishes. Winning this square creates decisive positional leverage:`;
+        document.getElementById('whiteBrawlWinPct').innerText = 
+          `P(White Win Match) = ${(deepdiveData.brawl_statistics.p_game_win_given_brawl_win_white * 100).toFixed(1)}%`;
+        document.getElementById('blackBrawlWinPct').innerText = 
+          `P(Black Win Match) = ${(deepdiveData.brawl_statistics.p_game_win_given_brawl_win_black * 100).toFixed(1)}%`;
+      } else {
+        opList.innerHTML = `
+          <div class="opening-item">
+            <div>
+              <span class="opening-name">Combat on ${sqName.toUpperCase()} occurs in ${sqData.outcomes.total_games_with_combat} matches.</span>
+            </div>
+            <div class="opening-deaths">${sqData.deaths} captures</div>
+          </div>
+          <div class="opening-item" style="border-left-color: var(--accent-blue);">
+            <div>Match win rate when ${sqName.toUpperCase()} sees combat: White ${sqData.outcomes.white_win_pct}% | Black ${sqData.outcomes.black_win_pct}% | Draw ${sqData.outcomes.draw_pct}%</div>
+          </div>
+        `;
+      }
+    }
+
+    renderBoard();
+    selectSquare(activeSq);
+  </script>
+</body>
+</html>
